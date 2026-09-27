@@ -1,0 +1,6 @@
+[
+  {"name": "nginx",    "url": "http://localhost:8080/healthz"},
+  {"name": "api",      "url": "http://localhost:3000/health"},
+  {"name": "auth",     "url": "http://localhost:4000/healthz"},
+  {"name": "google",   "url": "https://www.google.com"}
+]
