@@ -1,6 +1,9 @@
+# WARNING: lab-only credentials, committed in plain text.
+# Anyone with access to this repo can read them. Do not reuse this password
+# anywhere real; real Secrets should come from a secret manager, not git.
 apiVersion: v1
 kind: Secret
-metadata: 
+metadata:
   name: postgres
   labels:
     app: postgres
