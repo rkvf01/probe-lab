@@ -1,53 +1,75 @@
 package main
 
-import ( 
-         "flag"
-     	 "fmt"
-	 "os"
-	 "encoding/json"
-	 "net/http"
-	 "time"
-       )
+import (
+	"encoding/json"
+	"errors"
+	"flag"
+	"fmt"
+	"net"
+	"net/http"
+	"os"
+	"syscall"
+	"time"
+)
 
 type target struct {
 	Name string `json:"name"`
-	Url string `json:"url"`
+	Url  string `json:"url"`
 }
 
+func probe(tgt target) {
+	start := time.Now()
+	client := &http.Client{Timeout: 5 * time.Second}
+	resp, err := client.Get(tgt.Url)
+	duration := time.Since(start)
+	if err != nil {
+		if errors.Is(err, syscall.ECONNREFUSED) {
+			fmt.Printf("%s  REFUSED \n", tgt.Name)
+			return
+		}
+		var ne net.Error
+		if errors.As(err, &ne) && ne.Timeout() {
+			fmt.Printf("%s  TIMEOUT \n", tgt.Name)
+			return
+		}
+
+		fmt.Printf("%s other Error : %s", tgt.Name, err.Error())
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		fmt.Printf("Name :%s , Response Code : %d , Duration %d UNHEALTHY \n", tgt.Name, resp.StatusCode, duration.Milliseconds())
+		return
+	}
+	fmt.Printf("Name :%s , Response Code : %d , Duration %d \n", tgt.Name, resp.StatusCode, duration.Milliseconds())
+
+}
 
 func main() {
 
-	configPath := flag.String("config" , "target.json", "enter the path for the config file")
+	configPath := flag.String("config", "target.json", "enter the path for the config file")
 	flag.Parse()
 
-	fmt.Println (*configPath)
+	//fmt.Println(*configPath)
 
 	data, err := os.ReadFile(*configPath)
 
 	if err != nil {
-		panic(err)
+		fmt.Fprintf(os.Stderr, "Error: Config file not Found \n")
+		os.Exit(1)
 	}
 
 	var targets []target
 	err = json.Unmarshal(data, &targets)
-	if err !=nil {
-		panic(err)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error in the input json file %s\n", err)
+		os.Exit(1)
 	}
 
-	client :=&http.Client{Timeout: 5 * time.Second}
-
 	for _, t := range targets {
-		fmt.Printf("name: %s url:%s \n",t.Name,t.Url)
-		start := time.Now()
-		resp, err  := client.Get(t.Url)
-		duration := time.Since(start)
-		if err != nil {
-			fmt.Printf("Name : %s Errror= %s\n",t.Name, err)
-			continue
-		}
-		defer resp.Body.Close()
-		fmt.Printf("name: %s  status: %d  duration: %s\n", t.Name, resp.StatusCode, duration)
+		//fmt.Printf("name: %s url:%s \n", t.Name, t.Url)
+		probe(t)
 	}
 
 }
-
