@@ -46,24 +46,45 @@ func probe(tgt target) {
 
 }
 
+func parseTargets(data []byte) ([]target, error) {
+
+	//fmt.Println(*configPath)
+
+	var targets []target
+	err := json.Unmarshal(data, &targets)
+	if err != nil {
+		//fmt.Fprintf(os.Stderr, "Error in the input json file %s\n", err)
+		return nil, err
+	}
+
+	seen := make(map[string]bool)
+	for _, t := range targets {
+		if seen[t.Name] {
+			return nil, fmt.Errorf("Duplicate name seen %q in target", t.Name)
+		}
+		seen[t.Name] = true
+		if t.Url == "" {
+			return nil, fmt.Errorf("Target %q missing url ", t.Name)
+		}
+	}
+
+	return targets, nil
+
+}
+
 func main() {
 
 	configPath := flag.String("config", "target.json", "enter the path for the config file")
 	flag.Parse()
-
-	//fmt.Println(*configPath)
-
 	data, err := os.ReadFile(*configPath)
-
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: Config file not Found \n")
 		os.Exit(1)
 	}
 
-	var targets []target
-	err = json.Unmarshal(data, &targets)
+	targets, err := parseTargets(data)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error in the input json file %s\n", err)
+		fmt.Fprintf(os.Stderr, "Error processing data %s \n", err)
 		os.Exit(1)
 	}
 
