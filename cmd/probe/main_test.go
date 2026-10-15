@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"os"
 	"testing"
 )
 
@@ -20,6 +22,9 @@ func TestParseTargets(t *testing.T) {
 
 	for name, tc := range testcases {
 		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			t.Log(name, tc.input)
+
 			targets, err := parseTargets([]byte(tc.input))
 
 			if (err != nil) != tc.wantErr {
@@ -38,4 +43,20 @@ func TestParseTargets(t *testing.T) {
 		})
 	}
 
+}
+
+func TestMain(m *testing.M) {
+	dir, err := os.MkdirTemp("", "probe-test")
+
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Failed creating directory", err)
+		os.Exit(1)
+	}
+	fmt.Printf("Dir created %s\n", dir)
+	defer func() {
+		os.RemoveAll(dir)
+		fmt.Println("Teardown completed: Removed directory")
+	}()
+
+	m.Run()
 }
